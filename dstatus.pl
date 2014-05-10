@@ -3,7 +3,7 @@
 use feature "switch";
 
 ## Constants
-my $interval = 10;
+my $interval = 1;
 my $wdev = "wlp3s0";
 
 ## Commands
@@ -32,6 +32,12 @@ while(1){
 	my $dateString 	= `date +"%F %R"`;
 	chomp($dateString);
 	
+	# Check for vpn
+	my $vpnStat = "";
+	if (&isVpn()){
+		$vpnStat = "VPN ";
+	}
+
 	# Retrieve battery status
 	unless ( $sign =~ m/Full/ ) {
 		my $fullBatt 	= `cat /sys/class/power_supply/BAT0/charge_full`;
@@ -39,9 +45,9 @@ while(1){
 		my $percentBatt = $curBatt / $fullBatt * 100;
 		$percentBattString = sprintf('%.2f', $percentBatt);
 
-		$displayString = "${ssid} ${sign}${percentBattString}\% ${dateString}";
+		$displayString = "${vpnStat}${ssid} ${sign}${percentBattString}\% ${dateString}";
 	} else {
-		$displayString = "${ssid} ${sign} ${dateString}";
+		$displayString = "${vpnStat}${ssid} ${sign} ${dateString}";
 	}
 	
 	# Test line for output 
@@ -52,4 +58,13 @@ while(1){
 
 	# Wait our sleep interval
 	sleep ${interval};
+}
+
+sub isVpn {
+	my $command = 'ps -e | awk \'{print $4;}\' | grep vpnc';
+	chomp(my $ps = `$command`);
+	if($ps){
+		return 1;
+	}
+	return 0;
 }
