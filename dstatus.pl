@@ -1,16 +1,25 @@
 #!/usr/bin/perl
+
 ## Includes
-use feature "switch";
+use Getopt::Long;
 
 ## Constants
 my $interval = 1;
 my $wdev = "wlp3s0";
+my @vpns = ( "openconnect", "vpnc" );
 
 ## Commands
 my $awk = "/usr/bin/awk";
 my $grep = "/bin/grep";
 my $iw = "/usr/sbin/iw";
+my $ps = "/bin/ps";
 my $sed	= "/bin/sed";
+
+## Flags
+my $flag_test;
+
+## Process Parameters
+GetOptions( "test|t" => \$flag_test );
 
 ## Determine SSID 
 my $ssid = `${iw} dev ${wdev} link | ${grep} SSID | ${sed} 's/\s*SSID: //'`;
@@ -19,7 +28,7 @@ $ssid =~ s/^\s+|\s+$//g;
 ## Infinite print loop
 while(1){
 	# Perform battery calculations
-	my $sign	= `cat /sys/class/power_supply/BAT0/status`;
+	my $sign = `cat /sys/class/power_supply/BAT0/status`;
 	my $percentBattString;
 	my $displayString;
 	
@@ -50,21 +59,26 @@ while(1){
 		$displayString = "${vpnStat}${ssid} ${sign} ${dateString}";
 	}
 	
-	# Test line for output 
-	#print "${displayString}\n\n";
-	
-	# Call to xsetroot which actually enables the display
-	`xsetroot -name "${displayString}"`;
+	# Update dwm root or just print to STDOUT
+	unless( $flag_test) {
+		`xsetroot -name "${displayString}"`;
+	} else {
+		print "${displayString}", "\n";
+	}
 
 	# Wait our sleep interval
-	sleep ${interval};
+	sleep $interval;
 }
 
 sub isVpn {
-	my $command = 'ps -e | awk \'{print $4;}\' | grep vpnc';
-	chomp(my $ps = `$command`);
-	if($ps){
-		return 1;
+	my $rc = 0;
+	foreach( @vpns ) {
+		my $command = "${ps} -e | ${awk} \'{print \$4;}\' | ${grep} $_";
+		chomp(my $rc_ps = `$command`);
+		if($rc_ps) {
+			$rc = 1;
+			last;
+		}
 	}
-	return 0;
+	return $rc;
 }
