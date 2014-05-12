@@ -28,7 +28,11 @@ Getopt::Long::Configure( "bundling" );
 ## Process Parameters
 GetOptions( "test|t"            => \$flag_test,
             "wireless|wdev|w=s" => \$wdev);
-$wdev = untaintValue($wdev);
+
+# Sanitize wireless device if it's provided
+if( defined $wdev ) {
+	$wdev = untaintValue($wdev);
+}
 
 ## Infinite print loop
 while(1){
@@ -48,12 +52,13 @@ while(1){
 	
 	# Check for vpn
 	if (&isVPN()){
-		$displayString = "VPN ${displayString}";
+		$displayString = "VPN ";
 	}
 	
+	# Check the wireless status
 	if ( defined $wdev ) {
 		my $wstat = checkWireless( $wdev );
-		$displayString = "${displayString} ${wstat}"
+		$displayString = "${displayString}${wstat}"
 	}
 
 	# Retrieve battery status
@@ -109,8 +114,7 @@ sub checkWireless {
 		$status = "${wdev} Down";
 	} else {
 		my $ssid = `$ssidCheck`;
-		chomp( $ssid );
-		$status = $ssid;
+		$status = cleanValue( $ssid );
 	}
 
 	return $status;
@@ -125,6 +129,20 @@ sub untaintValue() {
 		die "Value ${value} is tainted!";
 	} else {
 		$value = $1;
+	}
+
+	return $value;
+}
+
+## cleanValue =================================================
+# Removes undesirable characters from the provided value
+## ============================================================
+sub cleanValue() {
+	my $value = @_[0];
+	if( $value =~ m/[^a-zA-Z0-9_.\-]*([a-zA-Z0-9_.\-]+)[^a-zA-Z0-9_.\-]*/ ) {
+		$value = $1
+	} else {
+		$value = "!";
 	}
 
 	return $value;
