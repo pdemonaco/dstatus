@@ -32,6 +32,8 @@ GetOptions( "test|t"            => \$flag_test,
 # Sanitize wireless device if it's provided
 if( defined $wdev ) {
 	$wdev = untaintValue($wdev);
+} else {
+	$wdev = getWireless();
 }
 
 ## Infinite print loop
@@ -118,6 +120,22 @@ sub checkWireless {
 	}
 
 	return $status;
+}
+
+## getWireless ================================================
+# Attempts to determine the wireless device
+## ============================================================
+sub getWireless() {
+	my $wCheck = "${iw} dev | ${grep} Interface | ${awk} \'{print \$2}\'";
+	my $dev = `$wCheck`;
+	
+	unless( $dev ) {
+		undef $dev;
+	} else {
+		$dev = cleanValue( $dev );
+	}
+
+	return $dev;
 }
 
 ## untaintValue ===============================================
