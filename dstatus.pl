@@ -3,9 +3,11 @@
 ## Includes
 use Getopt::Long;
 
+## Paths
+my $battpath = "/sys/class/power_supply/BAT0/";
+
 ## Constants
 my $interval = 1;
-my $wdev = "wlp3s0";
 my @vpns = ( "openconnect", "vpnc" );
 
 ## Commands
@@ -37,46 +39,34 @@ if( defined $wdev ) {
 }
 
 ## Infinite print loop
-while(1){
-	# Perform battery calculations
-	my $sign = `cat /sys/class/power_supply/BAT0/status`;
-	my $percentBattString;
+while( 1 ){
 	my $displayString;
-	
-	chomp($sign);
-	# Apply a sign
-	$sign =~ s/^Charging/+/g;
-	$sign =~ s/^Discharging/-/g;
 	
 	# Retrieve date information and format it HH:MM
 	my $dateString 	= `date +"%F %R"`;
-	chomp($dateString);
-	
-	# Check for vpn
-	if (&isVPN()){
-		$displayString = "VPN ";
-	}
+	chomp( $dateString );
 	
 	# Check the wireless status
 	if ( defined $wdev ) {
 		my $wstat = checkWireless( $wdev );
-		$displayString = "${displayString}${wstat}"
+		$displayString = "${displayString} ${wstat}"
+	}
+	
+	# Check for vpn
+	if( &isVPN() ) {
+		$displayString = "VPN ${displayString}";
 	}
 
 	# Retrieve battery status
-	unless ( $sign =~ m/Full/ ) {
-		my $fullBatt 	= `cat /sys/class/power_supply/BAT0/charge_full`;
-		my $curBatt 	= `cat /sys/class/power_supply/BAT0/charge_now`;
-		my $percentBatt = $curBatt / $fullBatt * 100;
-		$percentBattString = sprintf('%.2f', $percentBatt);
-
-		$displayString = "${displayString} ${sign}${percentBattString}\% ${dateString}";
-	} else {
-		$displayString = "${displayString} ${sign} ${dateString}";
+	if( -e $battpath ) {
+		my $battStat = checkBattery();
+		$displayString = "${displayString} ${battStat} ${dateString}";
+	} else { 
+		$displayString = "${displayString} ${dateString}";
 	}
 	
 	# Update dwm root or just print to STDOUT
-	unless( $flag_test) {
+	unless( $flag_test ) {
 		`xsetroot -name "${displayString}"`;
 	} else {
 		print "${displayString}", "\n";
@@ -100,6 +90,41 @@ sub isVPN {
 		}
 	}
 	return $rc;
+}
+
+## checkBattery ===============================================
+# Calculate current battery statuses
+## ============================================================
+sub checkBattery {
+	my $batteryStatus;
+	
+	# Charge statistics
+	my $charge_design = `cat /sys/class/power_supply/BAT0/charge_full_design`;
+	my $charge_full   = `cat /sys/class/power_supply/BAT0/charge_full`;
+	my $charge        = `cat /sys/class/power_supply/BAT0/charge_now`;
+	my $ac_offline    = `cat /sys/class/power_supply/AC/online`;
+
+	# Perform battery calculations
+	my $charge_percent;
+
+	# Determine whether we're charging or not 
+	my $sign;
+	unless( $ac_offline ) {
+		$sign = "+";
+	} else {
+		$sign = "-";
+	}
+
+	# Calculate battery status if we're not full
+	unless( $charge == $charge_design ) {
+		$charge_percent = $charge / $charge_full * 100;
+		$charge_percent = sprintf( '%.2f', $charge_percent );
+		$batteryStatus = "${sign}${charge_percent}\%";
+	} else {
+		$batteryStatus = "Full";
+	}
+	
+	return $batteryStatus;
 }
 
 ## checkWireless ==============================================
