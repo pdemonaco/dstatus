@@ -109,7 +109,7 @@ sub checkBattery {
 
 	# Determine whether we're charging or not 
 	my $sign;
-	unless( $ac_offline ) {
+	unless( $ac_offline == 0 ) {
 		$sign = "+";
 	} else {
 		$sign = "-";
