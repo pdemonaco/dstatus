@@ -49,7 +49,7 @@ while( 1 ){
 	# Check the wireless status
 	if ( defined $wdev ) {
 		my $wstat = checkWireless( $wdev );
-		$displayString = "${displayString} ${wstat}"
+		$displayString = ${wstat}
 	}
 	
 	# Check for vpn
