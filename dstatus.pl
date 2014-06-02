@@ -13,7 +13,7 @@ my @vpns = ( "openconnect", "vpnc" );
 ## Commands
 my $awk = "/usr/bin/awk";
 my $grep = "/bin/grep";
-my ${ifconfig} = "/bin/ifconfig";
+my $ifconfig = "/bin/ifconfig";
 my $iw = "/usr/sbin/iw";
 my $ps = "/bin/ps";
 my $sed	= "/bin/sed";
